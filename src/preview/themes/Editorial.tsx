@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
-import type { PortfolioData } from '../types';
+import type { PortfolioData } from '../../types';
+import { densityScale, formatPeriod, initialsOf, normalizeUrl } from './_shared';
 
 const ED = {
   bg: '#fbf9f4',
@@ -10,26 +11,6 @@ const ED = {
   sans: '"Noto Sans JP", -apple-system, system-ui, sans-serif',
   mono: '"JetBrains Mono", ui-monospace, monospace',
 };
-
-function initialsOf(name: string): string {
-  const t = name.trim();
-  if (!t) return '?';
-  const parts = t.split(/\s+/);
-  return parts.length >= 2
-    ? (parts[0][0] + parts[1][0]).toUpperCase()
-    : t.slice(0, 2).toUpperCase();
-}
-
-function formatPeriod(s: { periodStart: string; periodEnd: string; periodNow: boolean }): string {
-  if (!s.periodStart && !s.periodEnd && !s.periodNow) return '';
-  const end = s.periodNow ? '現在' : s.periodEnd;
-  if (s.periodStart && end) return `${s.periodStart} – ${end}`;
-  return s.periodStart || end;
-}
-
-function densityScale(d: number) {
-  return 0.7 + 0.6 * d;
-}
 
 type Props = { data: PortfolioData };
 
@@ -51,7 +32,6 @@ export function Editorial({ data }: Props) {
         padding: `${px(60)}px ${px(64)}px ${px(80)}px`,
       }}
     >
-      {/* Hero */}
       <header style={{ marginBottom: px(56), display: 'flex', alignItems: 'flex-start', gap: 28 }}>
         <div
           style={{
@@ -88,7 +68,6 @@ export function Editorial({ data }: Props) {
         </div>
       </header>
 
-      {/* About */}
       {data.about.trim() && (
         <section style={{ marginBottom: px(52) }}>
           <SectionHead num="01" en="About" jp="自己紹介" accent={accent} />
@@ -98,7 +77,6 @@ export function Editorial({ data }: Props) {
         </section>
       )}
 
-      {/* Skills */}
       {data.skills.filter((s) => s.name.trim()).length > 0 && (
         <section style={{ marginBottom: px(52) }}>
           <SectionHead num="02" en="Skills" jp="持っている道具" accent={accent} />
@@ -120,7 +98,6 @@ export function Editorial({ data }: Props) {
         </section>
       )}
 
-      {/* Projects */}
       {data.projects.filter((p) => p.title.trim()).length > 0 && (
         <section style={{ marginBottom: px(48) }}>
           <SectionHead num="03" en="Selected Works" jp="主な仕事" accent={accent} />
@@ -138,19 +115,14 @@ export function Editorial({ data }: Props) {
                 <div style={{ fontSize: 12, color: ED.sub, marginBottom: 16, fontStyle: 'italic', fontFamily: ED.serif }}>{p.role}</div>
               )}
               <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: '70px 1fr', gap: '10px 20px', alignItems: 'baseline' }}>
-                {(['課題', 'problem', '行動', 'action', '成果', 'result'] as const).reduce<Array<[string, string]>>((acc, _, idx, src) => {
-                  if (idx % 2 !== 0) return acc;
-                  const lbl = src[idx] as string;
-                  const key = src[idx + 1] as 'problem' | 'action' | 'result';
-                  const val = p[key];
-                  if (val.trim()) acc.push([lbl, val]);
-                  return acc;
-                }, []).map(([l, v]) => (
-                  <Fragment key={l}>
-                    <dt style={{ fontFamily: ED.serif, fontSize: 12, color: accent, fontStyle: 'italic' }}>— {l}</dt>
-                    <dd style={{ margin: 0, fontSize: 13.5, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{v}</dd>
-                  </Fragment>
-                ))}
+                {([['課題', p.problem], ['行動', p.action], ['成果', p.result]] as const)
+                  .filter(([, v]) => v.trim())
+                  .map(([l, v]) => (
+                    <Fragment key={l}>
+                      <dt style={{ fontFamily: ED.serif, fontSize: 12, color: accent, fontStyle: 'italic' }}>— {l}</dt>
+                      <dd style={{ margin: 0, fontSize: 13.5, lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{v}</dd>
+                    </Fragment>
+                  ))}
               </dl>
               {p.tools.length > 0 && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 16 }}>
@@ -164,12 +136,8 @@ export function Editorial({ data }: Props) {
               )}
               {p.link.trim() && (
                 <div style={{ marginTop: 14, fontSize: 12 }}>
-                  <a
-                    href={normalizeUrl(p.link)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: accent, textDecoration: 'none', fontFamily: ED.serif, fontStyle: 'italic' }}
-                  >
+                  <a href={normalizeUrl(p.link)} target="_blank" rel="noopener noreferrer"
+                    style={{ color: accent, textDecoration: 'none', fontFamily: ED.serif, fontStyle: 'italic' }}>
                     プロジェクトを見る →
                   </a>
                 </div>
@@ -179,22 +147,16 @@ export function Editorial({ data }: Props) {
         </section>
       )}
 
-      {/* Contact */}
       {data.links.filter((l) => l.url.trim()).length > 0 && (
         <section>
           <SectionHead num="04" en="Contact" jp="連絡先" accent={accent} />
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {data.links.filter((l) => l.url.trim()).map((l) => (
-              <a
-                key={l.id}
-                href={normalizeUrl(l.url, l.kind)}
-                target="_blank"
-                rel="noopener noreferrer"
+              <a key={l.id} href={normalizeUrl(l.url, l.kind)} target="_blank" rel="noopener noreferrer"
                 style={{
                   padding: '10px 16px', border: `1px solid ${ED.ink}`, color: ED.ink,
                   fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8,
-                }}
-              >
+                }}>
                 <span style={{ fontFamily: ED.serif, fontStyle: 'italic' }}>{l.kind}</span>
                 <span style={{ fontFamily: ED.mono, fontSize: 11, color: ED.sub }}>{l.url}</span>
               </a>
@@ -226,12 +188,4 @@ function SectionHead({ num, en, jp, accent }: { num: string; en: string; jp: str
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent, opacity: .6 }} />
     </div>
   );
-}
-
-function normalizeUrl(url: string, kind?: string): string {
-  const t = url.trim();
-  if (!t) return '#';
-  if (/^(https?:|mailto:|tel:)/i.test(t)) return t;
-  if (kind === 'Email' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return `mailto:${t}`;
-  return `https://${t}`;
 }

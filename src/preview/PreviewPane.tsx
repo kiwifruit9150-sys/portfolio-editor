@@ -1,7 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import { usePortfolio } from '../store/usePortfolio';
 import { Icon } from '../components/Icon';
-import { Editorial } from './Editorial';
+import { THEMES } from './themes/registry';
 
 export function PreviewPane() {
   const data = usePortfolio(
@@ -16,14 +16,15 @@ export function PreviewPane() {
   );
   const device = usePortfolio((s) => s.ui.previewDevice);
   const setDevice = usePortfolio((s) => s.setPreviewDevice);
-  const themeName = themeLabel(data.theme.id);
+  const meta = THEMES[data.theme.id] ?? THEMES.editorial;
+  const Component = meta.Component;
 
   return (
     <div className="pv">
       <div className="pv-bar">
         <div className="pv-bar-l">
           <span className="dot" />
-          ライブプレビュー · <span className="name">{themeName}</span>
+          ライブプレビュー · <span className="name">{meta.name}</span>
         </div>
         <div className="seg">
           <button
@@ -44,21 +45,11 @@ export function PreviewPane() {
           </button>
         </div>
       </div>
-      <div className="pv-stage">
+      <div className="pv-stage" style={{ background: meta.stageBg }}>
         <div className={`pv-frame ${device === 'mobile' ? 'mobile' : ''}`}>
-          <Editorial data={data} />
+          <Component data={data} />
         </div>
       </div>
     </div>
   );
-}
-
-function themeLabel(id: string) {
-  switch (id) {
-    case 'editorial': return 'Editorial';
-    case 'mono': return 'Mono';
-    case 'card': return 'Card';
-    case 'minimal': return 'Minimal';
-    default: return id;
-  }
 }

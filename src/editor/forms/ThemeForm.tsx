@@ -2,11 +2,13 @@ import { usePortfolio } from '../../store/usePortfolio';
 import type { ThemeMode } from '../../types';
 import { Icon } from '../../components/Icon';
 import { Field } from './Field';
+import { THEME_LIST } from '../../preview/themes/registry';
 
 const PRESETS = ['#ea6e3a', '#1a1a1a', '#0ea5e9', '#16a34a', '#7c5cff', '#db2777'];
 
 export function ThemeForm() {
   const theme = usePortfolio((s) => s.theme);
+  const setThemeId = usePortfolio((s) => s.setThemeId);
   const setAccent = usePortfolio((s) => s.setAccent);
   const setMode = usePortfolio((s) => s.setMode);
   const setDensity = usePortfolio((s) => s.setDensity);
@@ -15,19 +17,44 @@ export function ThemeForm() {
     <>
       <Field
         label="ポートフォリオのスタイル"
-        hint="Phase 1 では Editorial (紙・セリフ) のみ。今後 Mono / Card / Minimal を追加予定。"
+        hint="クリックすると右のプレビューが切り替わります。"
       >
-        <div className="item" style={{ borderColor: 'var(--accent)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent)', margin: 0 }}>
-          <div className="item-head">
-            <span style={{
-              width: 28, height: 28, borderRadius: 6,
-              background: '#fbf9f4', border: '1px solid var(--hairline)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-serif)', fontSize: 14, color: '#1c1a17',
-            }}>A</span>
-            <span className="title">Editorial</span>
-            <span className="tag-chip">選択中</span>
-          </div>
+        <div className="theme-grid">
+          {THEME_LIST.map((t) => {
+            const on = t.id === theme.id;
+            const Thumb = t.Thumb;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                className={`theme-card ${on ? 'on' : ''}`}
+                onClick={() => setThemeId(t.id)}
+                aria-pressed={on}
+              >
+                <div className="theme-thumb">
+                  <Thumb />
+                  {t.recommended && (
+                    <span className="theme-badge">
+                      <Icon name="star" size={9} />
+                      おすすめ
+                    </span>
+                  )}
+                  {on && (
+                    <span className="theme-check">
+                      <Icon name="check" size={13} />
+                    </span>
+                  )}
+                </div>
+                <div className="theme-meta">
+                  <div className="theme-name">
+                    <span className="n">{t.name}</span>
+                    <span className="t">{t.tag}</span>
+                  </div>
+                  <div className="theme-desc">{t.desc}</div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </Field>
 
@@ -64,7 +91,7 @@ export function ThemeForm() {
       </Field>
 
       <div className="field-row">
-        <Field label="モード">
+        <Field label="モード" hint="現状はテーマ識別性を優先して固定です (Phase 3 で対応予定)">
           <ModeSelect mode={theme.mode} onChange={setMode} />
         </Field>
         <Field label="余白の広さ">
@@ -90,7 +117,13 @@ export function ThemeForm() {
   );
 }
 
-function ModeSelect({ mode, onChange }: { mode: ThemeMode; onChange: (m: ThemeMode) => void }) {
+function ModeSelect({
+  mode,
+  onChange,
+}: {
+  mode: ThemeMode;
+  onChange: (m: ThemeMode) => void;
+}) {
   return (
     <div className="seg">
       <button type="button" className={mode === 'auto' ? 'on' : ''} onClick={() => onChange('auto')}>

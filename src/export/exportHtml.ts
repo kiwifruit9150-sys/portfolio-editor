@@ -1,10 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
 import type { PortfolioData } from '../types';
-import { Editorial } from '../preview/Editorial';
+import { THEMES } from '../preview/themes/registry';
 
 export function buildHtml(data: PortfolioData): string {
-  const body = renderToStaticMarkup(createElement(Editorial, { data }));
+  const meta = THEMES[data.theme.id] ?? THEMES.editorial;
+  const body = renderToStaticMarkup(createElement(meta.Component, { data }));
   const title = data.profile.name
     ? `${data.profile.name} – Portfolio`
     : 'Portfolio';
@@ -18,7 +19,7 @@ export function buildHtml(data: PortfolioData): string {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Serif+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  html, body { margin: 0; padding: 0; background: #fbf9f4; }
+  html, body { margin: 0; padding: 0; background: ${meta.stageBg}; }
   body { -webkit-font-smoothing: antialiased; }
   a:hover { text-decoration: underline; }
   @media (max-width: 640px) {
