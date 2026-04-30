@@ -1,43 +1,61 @@
-import { useMemo, useState } from 'react';
 import { usePortfolio } from '../store/usePortfolio';
-import { renderHtml } from './renderHtml';
-
-type DeviceMode = 'pc' | 'mobile';
+import { Icon } from '../components/Icon';
+import { Editorial } from './Editorial';
 
 export function PreviewPane() {
-  const data = usePortfolio((s) => s.data);
-  const [device, setDevice] = useState<DeviceMode>('pc');
-  const html = useMemo(() => renderHtml(data), [data]);
+  const data = usePortfolio((s) => ({
+    profile: s.profile,
+    about: s.about,
+    skills: s.skills,
+    projects: s.projects,
+    links: s.links,
+    theme: s.theme,
+  }));
+  const device = usePortfolio((s) => s.ui.previewDevice);
+  const setDevice = usePortfolio((s) => s.setPreviewDevice);
+  const themeName = themeLabel(data.theme.id);
 
   return (
-    <div className="preview-pane">
-      <div className="preview-toolbar">
-        <span className="preview-toolbar-title">プレビュー</span>
-        <div className="device-switch">
+    <div className="pv">
+      <div className="pv-bar">
+        <div className="pv-bar-l">
+          <span className="dot" />
+          ライブプレビュー · <span className="name">{themeName}</span>
+        </div>
+        <div className="seg">
           <button
             type="button"
-            className={device === 'pc' ? 'active' : ''}
-            onClick={() => setDevice('pc')}
+            className={device === 'desktop' ? 'on' : ''}
+            onClick={() => setDevice('desktop')}
+            aria-label="PC"
           >
-            PC
+            <Icon name="monitor" size={13} />
           </button>
           <button
             type="button"
-            className={device === 'mobile' ? 'active' : ''}
+            className={device === 'mobile' ? 'on' : ''}
             onClick={() => setDevice('mobile')}
+            aria-label="スマホ"
           >
-            スマホ
+            <Icon name="smartphone" size={13} />
           </button>
         </div>
       </div>
-      <div className={`preview-frame-wrap device-${device}`}>
-        <iframe
-          className="preview-frame"
-          title="portfolio preview"
-          srcDoc={html}
-          sandbox="allow-same-origin"
-        />
+      <div className="pv-stage">
+        <div className={`pv-frame ${device === 'mobile' ? 'mobile' : ''}`}>
+          <Editorial data={data} />
+        </div>
       </div>
     </div>
   );
+}
+
+function themeLabel(id: string) {
+  switch (id) {
+    case 'editorial': return 'Editorial';
+    case 'mono': return 'Mono';
+    case 'card': return 'Card';
+    case 'minimal': return 'Minimal';
+    default: return id;
+  }
 }
