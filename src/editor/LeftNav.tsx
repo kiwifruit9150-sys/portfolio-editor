@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { sectionPct, usePortfolio } from '../store/usePortfolio';
 import type { SectionId } from '../types';
 import { Icon, type IconName } from '../components/Icon';
@@ -15,9 +17,32 @@ export function LeftNav() {
   const order = usePortfolio((s) => s.ui.sectionOrder);
   const active = usePortfolio((s) => s.ui.activeSection);
   const setActive = usePortfolio((s) => s.setActiveSection);
-  const stats = usePortfolio((s) =>
-    Object.fromEntries(order.map((id) => [id, sectionPct(s, id)])) as Record<SectionId, ReturnType<typeof sectionPct>>,
+
+  // Subscribe to the slices that actually feed sectionPct. Shallow compare on
+  // the slice references is stable across unrelated UI state updates.
+  const slice = usePortfolio(
+    useShallow((s) => ({
+      profile: s.profile,
+      about: s.about,
+      skills: s.skills,
+      projects: s.projects,
+      links: s.links,
+      theme: s.theme,
+    })),
   );
+
+  const stats = useMemo(() => {
+    const dummyUi = {
+      activeSection: active,
+      sectionOrder: order,
+      previewDevice: 'desktop' as const,
+      autoSaveStatus: 'idle' as const,
+      lastSavedAt: 0,
+    };
+    return Object.fromEntries(
+      order.map((id) => [id, sectionPct({ ...slice, ui: dummyUi }, id)]),
+    ) as Record<SectionId, ReturnType<typeof sectionPct>>;
+  }, [slice, order, active]);
 
   return (
     <nav className="nav" aria-label="セクション">

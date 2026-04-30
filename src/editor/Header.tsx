@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { overallPct, usePortfolio } from '../store/usePortfolio';
+import { overallPct, selectPortfolio, usePortfolio } from '../store/usePortfolio';
 import { downloadHtml } from '../export/exportHtml';
 import { Icon } from '../components/Icon';
 
@@ -8,15 +8,6 @@ export function Header() {
   const lastSavedAt = usePortfolio((s) => s.ui.lastSavedAt);
   const reset = usePortfolio((s) => s.reset);
   const pct = usePortfolio((s) => overallPct(s));
-
-  const data = usePortfolio((s) => ({
-    profile: s.profile,
-    about: s.about,
-    skills: s.skills,
-    projects: s.projects,
-    links: s.links,
-    theme: s.theme,
-  }));
 
   const saveLabel = useMemo(() => {
     if (status === 'saving') return '保存中…';
@@ -66,7 +57,7 @@ export function Header() {
         <button
           type="button"
           className="btn btn-primary"
-          onClick={() => downloadHtml(data)}
+          onClick={() => downloadHtml(selectPortfolio(usePortfolio.getState()))}
         >
           <Icon name="download" size={13} />
           HTMLエクスポート

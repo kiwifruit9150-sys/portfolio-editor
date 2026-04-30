@@ -1,16 +1,19 @@
+import { useShallow } from 'zustand/react/shallow';
 import { usePortfolio } from '../store/usePortfolio';
 import { Icon } from '../components/Icon';
 import { Editorial } from './Editorial';
 
 export function PreviewPane() {
-  const data = usePortfolio((s) => ({
-    profile: s.profile,
-    about: s.about,
-    skills: s.skills,
-    projects: s.projects,
-    links: s.links,
-    theme: s.theme,
-  }));
+  const data = usePortfolio(
+    useShallow((s) => ({
+      profile: s.profile,
+      about: s.about,
+      skills: s.skills,
+      projects: s.projects,
+      links: s.links,
+      theme: s.theme,
+    })),
+  );
   const device = usePortfolio((s) => s.ui.previewDevice);
   const setDevice = usePortfolio((s) => s.setPreviewDevice);
   const themeName = themeLabel(data.theme.id);
