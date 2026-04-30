@@ -1,17 +1,25 @@
 import type { ComponentType } from 'react';
-import type { PortfolioData, ThemeId } from '../../types';
+import type { PortfolioData, SectionId, ThemeId } from '../../types';
 import { Editorial } from './Editorial';
 import { Mono } from './Mono';
 import { Card } from './Card';
 import { Minimal } from './Minimal';
 import { ThumbCard, ThumbEditorial, ThumbMinimal, ThumbMono } from './thumbs';
 
+export type ThemeProps = {
+  data: PortfolioData;
+  /** Section ids in the order they should render. Filtered to renderable ids. */
+  order: SectionId[];
+  /** When set, the live preview can navigate the editor to a section on click. */
+  onJump?: (id: SectionId) => void;
+};
+
 export type ThemeMeta = {
   id: ThemeId;
   name: string;
   tag: string;
   desc: string;
-  Component: ComponentType<{ data: PortfolioData }>;
+  Component: ComponentType<ThemeProps>;
   Thumb: ComponentType;
   recommended?: boolean;
   /** Background color used for the preview stage backdrop. */

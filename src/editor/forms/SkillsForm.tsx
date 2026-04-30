@@ -9,6 +9,7 @@ export function SkillsForm() {
   const addSkill = usePortfolio((s) => s.addSkill);
   const updateSkill = usePortfolio((s) => s.updateSkill);
   const removeSkill = usePortfolio((s) => s.removeSkill);
+  const insertSampleSkills = usePortfolio((s) => s.insertSampleSkills);
 
   return (
     <>
@@ -21,10 +22,16 @@ export function SkillsForm() {
       {skills.length === 0 && (
         <div className="empty-add">
           スキルがまだありません。<br />
-          <button type="button" className="btn" onClick={addSkill}>
-            <Icon name="plus" size={12} />
-            最初のスキルを追加
-          </button>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+            <button type="button" className="btn" onClick={addSkill}>
+              <Icon name="plus" size={12} />
+              最初のスキルを追加
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={insertSampleSkills}>
+              <Icon name="sparkles" size={12} />
+              サンプルを挿入
+            </button>
+          </div>
         </div>
       )}
       {skills.map((s, idx) => (

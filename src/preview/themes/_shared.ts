@@ -1,4 +1,14 @@
-import type { Project } from '../../types';
+import type { Project, SectionId } from '../../types';
+
+/** SectionIds that themes actually render in the output (theme is form-only). */
+export const RENDERABLE_SECTIONS: ReadonlySet<SectionId> = new Set([
+  'profile',
+  'about',
+  'skills',
+  'projects',
+  'links',
+]);
+
 
 export function initialsOf(name: string): string {
   const t = name.trim();

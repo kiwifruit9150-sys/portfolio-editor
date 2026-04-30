@@ -1,5 +1,13 @@
-import type { PortfolioData } from '../../types';
-import { densityScale, formatPeriod, normalizeUrl } from './_shared';
+import type { ReactElement } from 'react';
+import type { SectionId } from '../../types';
+import {
+  RENDERABLE_SECTIONS,
+  densityScale,
+  formatPeriod,
+  normalizeUrl,
+} from './_shared';
+import { SectionWrap } from './SectionWrap';
+import type { ThemeProps } from './registry';
 
 const MN = {
   bg: '#ffffff',
@@ -11,20 +19,23 @@ const MN = {
   mono: '"JetBrains Mono", ui-monospace, monospace',
 };
 
-type Props = { data: PortfolioData };
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.22em', marginBottom: 18 }}>
+      {children}
+    </div>
+  );
+}
 
-export function Minimal({ data }: Props) {
+export function Minimal({ data, order, onJump }: ThemeProps) {
   const accent = data.theme.accent || '#1a1a1a';
   const k = densityScale(data.theme.density);
   const px = (n: number) => Math.round(n * k);
 
-  return (
-    <div style={{
-      width: '100%', minHeight: '100%',
-      background: MN.bg, color: MN.ink,
-      fontFamily: MN.sans, fontSize: 14, lineHeight: 1.8,
-      padding: `${px(80)}px ${px(80)}px ${px(96)}px`,
-    }}>
+  const renderable = order.filter((id) => RENDERABLE_SECTIONS.has(id));
+
+  const sections: Partial<Record<SectionId, () => ReactElement | null>> = {
+    profile: () => (
       <header style={{ marginBottom: px(64) }}>
         <h1 style={{ fontSize: 44, fontWeight: 700, margin: 0, letterSpacing: '-0.025em' }}>
           {data.profile.name || 'Your Name'}
@@ -37,21 +48,23 @@ export function Minimal({ data }: Props) {
           <div style={{ fontSize: 17, lineHeight: 1.7, maxWidth: 540 }}>{data.profile.tagline}</div>
         )}
       </header>
-
-      {data.about.trim() && (
-        <section style={{ marginBottom: px(56) }}>
-          <SectionLabel>ABOUT</SectionLabel>
-          <p style={{ margin: 0, fontSize: 14, color: MN.ink, lineHeight: 1.9, whiteSpace: 'pre-wrap' }}>
-            {data.about}
-          </p>
-        </section>
-      )}
-
-      {data.skills.filter((s) => s.name.trim()).length > 0 && (
+    ),
+    about: () => data.about.trim() ? (
+      <section style={{ marginBottom: px(56) }}>
+        <SectionLabel>ABOUT</SectionLabel>
+        <p style={{ margin: 0, fontSize: 14, color: MN.ink, lineHeight: 1.9, whiteSpace: 'pre-wrap' }}>
+          {data.about}
+        </p>
+      </section>
+    ) : null,
+    skills: () => {
+      const filled = data.skills.filter((s) => s.name.trim());
+      if (filled.length === 0) return null;
+      return (
         <section style={{ marginBottom: px(56) }}>
           <SectionLabel>SKILLS</SectionLabel>
           <div style={{ display: 'grid', gap: 14 }}>
-            {data.skills.filter((s) => s.name.trim()).map((s) => (
+            {filled.map((s) => (
               <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: 16, alignItems: 'baseline' }}>
                 <div style={{ fontFamily: MN.mono, fontSize: 11, color: MN.dim, letterSpacing: '0.06em' }}>{s.cat}</div>
                 <div>
@@ -64,12 +77,15 @@ export function Minimal({ data }: Props) {
             ))}
           </div>
         </section>
-      )}
-
-      {data.projects.filter((p) => p.title.trim()).length > 0 && (
+      );
+    },
+    projects: () => {
+      const filled = data.projects.filter((p) => p.title.trim());
+      if (filled.length === 0) return null;
+      return (
         <section style={{ marginBottom: px(56) }}>
           <SectionLabel>WORKS</SectionLabel>
-          {data.projects.filter((p) => p.title.trim()).map((p) => (
+          {filled.map((p) => (
             <div key={p.id} style={{ paddingTop: 24, paddingBottom: 24, borderTop: `1px solid ${MN.hair}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4, gap: 12 }}>
                 <h3 style={{ fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '-0.01em' }}>{p.title}</h3>
@@ -97,13 +113,16 @@ export function Minimal({ data }: Props) {
             </div>
           ))}
         </section>
-      )}
-
-      {data.links.filter((l) => l.url.trim()).length > 0 && (
+      );
+    },
+    links: () => {
+      const filled = data.links.filter((l) => l.url.trim());
+      if (filled.length === 0) return null;
+      return (
         <section>
           <SectionLabel>CONTACT</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {data.links.filter((l) => l.url.trim()).map((l) => (
+            {filled.map((l) => (
               <div key={l.id} style={{
                 display: 'flex', gap: 16, paddingBottom: 8, borderBottom: `1px solid ${MN.hair}`, alignItems: 'baseline',
               }}>
@@ -118,15 +137,28 @@ export function Minimal({ data }: Props) {
             ))}
           </div>
         </section>
-      )}
-    </div>
-  );
-}
+      );
+    },
+  };
 
-function SectionLabel({ children }: { children: string }) {
   return (
-    <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.22em', marginBottom: 18 }}>
-      {children}
+    <div style={{
+      width: '100%', minHeight: '100%',
+      background: MN.bg, color: MN.ink,
+      fontFamily: MN.sans, fontSize: 14, lineHeight: 1.8,
+      padding: `${px(80)}px ${px(80)}px ${px(96)}px`,
+    }}>
+      {renderable.map((id) => {
+        const render = sections[id];
+        if (!render) return null;
+        const node = render();
+        if (!node) return null;
+        return (
+          <SectionWrap key={id} id={id} onJump={onJump}>
+            {node}
+          </SectionWrap>
+        );
+      })}
     </div>
   );
 }

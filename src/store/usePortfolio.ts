@@ -49,14 +49,17 @@ type Store = AppState & {
   addSkill: () => void;
   updateSkill: (id: string, patch: Partial<Skill>) => void;
   removeSkill: (id: string) => void;
+  insertSampleSkills: () => void;
 
   addProject: () => void;
   updateProject: (id: string, patch: Partial<Project>) => void;
   removeProject: (id: string) => void;
+  insertSampleProjects: () => void;
 
   addLink: () => void;
   updateLink: (id: string, patch: Partial<{ kind: LinkKind; url: string }>) => void;
   removeLink: (id: string) => void;
+  insertSampleLinks: () => void;
 
   setThemeId: (id: ThemeId) => void;
   setAccent: (accent: string) => void;
@@ -129,6 +132,14 @@ export const usePortfolio = create<Store>((set, get) => {
     removeSkill: (id) =>
       mutate((s) => ({ skills: s.skills.filter((x) => x.id !== id) })),
 
+    insertSampleSkills: () =>
+      mutate((s) => ({
+        skills: [
+          ...s.skills,
+          ...structuredClone(seed.skills).map((x) => ({ ...x, id: uid('s') })),
+        ],
+      })),
+
     addProject: () =>
       mutate((s) => ({
         projects: [
@@ -155,6 +166,14 @@ export const usePortfolio = create<Store>((set, get) => {
     removeProject: (id) =>
       mutate((s) => ({ projects: s.projects.filter((x) => x.id !== id) })),
 
+    insertSampleProjects: () =>
+      mutate((s) => ({
+        projects: [
+          ...s.projects,
+          ...structuredClone(seed.projects).map((x) => ({ ...x, id: uid('p') })),
+        ],
+      })),
+
     addLink: () =>
       mutate((s) => ({
         links: [...s.links, { id: uid('l'), kind: 'GitHub', url: '' }],
@@ -165,6 +184,14 @@ export const usePortfolio = create<Store>((set, get) => {
       })),
     removeLink: (id) =>
       mutate((s) => ({ links: s.links.filter((x) => x.id !== id) })),
+
+    insertSampleLinks: () =>
+      mutate((s) => ({
+        links: [
+          ...s.links,
+          ...structuredClone(seed.links).map((x) => ({ ...x, id: uid('l') })),
+        ],
+      })),
 
     setThemeId: (id) =>
       mutate((s) => ({ theme: { ...s.theme, id } as ThemeConfig })),

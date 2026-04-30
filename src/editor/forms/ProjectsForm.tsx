@@ -8,6 +8,7 @@ export function ProjectsForm() {
   const addProject = usePortfolio((s) => s.addProject);
   const updateProject = usePortfolio((s) => s.updateProject);
   const removeProject = usePortfolio((s) => s.removeProject);
+  const insertSampleProjects = usePortfolio((s) => s.insertSampleProjects);
   const [openId, setOpenId] = useState<string | null>(
     projects[projects.length - 1]?.id ?? null,
   );
@@ -34,10 +35,26 @@ export function ProjectsForm() {
       {projects.length === 0 && (
         <div className="empty-add">
           プロジェクトがまだありません。<br />
-          <button type="button" className="btn" onClick={addProject}>
-            <Icon name="plus" size={12} />
-            最初のプロジェクトを追加
-          </button>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+            <button type="button" className="btn" onClick={addProject}>
+              <Icon name="plus" size={12} />
+              最初のプロジェクトを追加
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                insertSampleProjects();
+                setTimeout(() => {
+                  const list = usePortfolio.getState().projects;
+                  setOpenId(list[list.length - 1]?.id ?? null);
+                }, 0);
+              }}
+            >
+              <Icon name="sparkles" size={12} />
+              サンプルを挿入
+            </button>
+          </div>
         </div>
       )}
       {projects.map((p, idx) => {

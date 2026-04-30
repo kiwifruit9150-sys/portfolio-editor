@@ -1,11 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
-import type { PortfolioData } from '../types';
+import type { PortfolioData, SectionId } from '../types';
 import { THEMES } from '../preview/themes/registry';
 
-export function buildHtml(data: PortfolioData): string {
+export function buildHtml(data: PortfolioData, order: SectionId[]): string {
   const meta = THEMES[data.theme.id] ?? THEMES.editorial;
-  const body = renderToStaticMarkup(createElement(meta.Component, { data }));
+  const body = renderToStaticMarkup(createElement(meta.Component, { data, order }));
   const title = data.profile.name
     ? `${data.profile.name} – Portfolio`
     : 'Portfolio';
@@ -41,8 +41,8 @@ function esc(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-export function downloadHtml(data: PortfolioData) {
-  const html = buildHtml(data);
+export function downloadHtml(data: PortfolioData, order: SectionId[]) {
+  const html = buildHtml(data, order);
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

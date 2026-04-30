@@ -14,8 +14,10 @@ export function PreviewPane() {
       theme: s.theme,
     })),
   );
+  const order = usePortfolio((s) => s.ui.sectionOrder);
   const device = usePortfolio((s) => s.ui.previewDevice);
   const setDevice = usePortfolio((s) => s.setPreviewDevice);
+  const setActive = usePortfolio((s) => s.setActiveSection);
   const meta = THEMES[data.theme.id] ?? THEMES.editorial;
   const Component = meta.Component;
 
@@ -25,6 +27,7 @@ export function PreviewPane() {
         <div className="pv-bar-l">
           <span className="dot" />
           ライブプレビュー · <span className="name">{meta.name}</span>
+          <span className="hint">クリックで該当セクションに移動</span>
         </div>
         <div className="seg">
           <button
@@ -47,7 +50,7 @@ export function PreviewPane() {
       </div>
       <div className="pv-stage" style={{ background: meta.stageBg }}>
         <div className={`pv-frame ${device === 'mobile' ? 'mobile' : ''}`}>
-          <Component data={data} />
+          <Component data={data} order={order} onJump={setActive} />
         </div>
       </div>
     </div>

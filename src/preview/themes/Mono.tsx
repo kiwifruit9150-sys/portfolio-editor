@@ -1,5 +1,14 @@
-import type { PortfolioData } from '../../types';
-import { densityScale, formatPeriod, initialsOf, normalizeUrl } from './_shared';
+import type { ReactElement } from 'react';
+import type { SectionId } from '../../types';
+import {
+  RENDERABLE_SECTIONS,
+  densityScale,
+  formatPeriod,
+  initialsOf,
+  normalizeUrl,
+} from './_shared';
+import { SectionWrap } from './SectionWrap';
+import type { ThemeProps } from './registry';
 
 const MO = {
   bg: '#0a0a0c',
@@ -13,20 +22,36 @@ const MO = {
   sans: '"Noto Sans JP", -apple-system, "Inter", system-ui, sans-serif',
 };
 
-type Props = { data: PortfolioData };
+function SectionHead({ num, en, jp, accent }: { num: string; en: string; jp: string; accent: string }) {
+  return (
+    <div style={{ marginBottom: 20, display: 'flex', alignItems: 'baseline', gap: 12 }}>
+      <span style={{ fontFamily: MO.mono, fontSize: 10, color: MO.dim, letterSpacing: '0.16em' }}>{num}</span>
+      <h2 style={{
+        fontFamily: MO.sans, fontSize: 13, fontWeight: 700,
+        letterSpacing: '0.18em', textTransform: 'uppercase',
+        color: accent, margin: 0,
+      }}>{en}</h2>
+      <span style={{ fontSize: 11, color: MO.sub, fontFamily: MO.sans }}>{jp}</span>
+      <div style={{ flex: 1, height: 1, background: MO.hair, marginLeft: 6 }} />
+    </div>
+  );
+}
 
-export function Mono({ data }: Props) {
+export function Mono({ data, order, onJump }: ThemeProps) {
   const accent = data.theme.accent || '#7c5cff';
   const k = densityScale(data.theme.density);
   const px = (n: number) => Math.round(n * k);
 
-  return (
-    <div style={{
-      width: '100%', minHeight: '100%',
-      background: MO.bg, color: MO.ink,
-      fontFamily: MO.sans, fontSize: 14, lineHeight: 1.7,
-      padding: `${px(56)}px ${px(56)}px ${px(72)}px`,
-    }}>
+  const renderable = order.filter((id) => RENDERABLE_SECTIONS.has(id));
+  const headIdx: Record<SectionId, string> = {} as Record<SectionId, string>;
+  let n = 1;
+  for (const id of renderable) {
+    if (id === 'profile') continue;
+    headIdx[id] = String(n++).padStart(2, '0');
+  }
+
+  const sections: Partial<Record<SectionId, () => ReactElement | null>> = {
+    profile: () => (
       <header style={{ marginBottom: px(56) }}>
         <div style={{ fontFamily: MO.mono, fontSize: 11, color: MO.dim, marginBottom: 12, letterSpacing: '0.05em' }}>
           $ whoami
@@ -58,21 +83,23 @@ export function Mono({ data }: Props) {
           </div>
         </div>
       </header>
-
-      {data.about.trim() && (
+    ),
+    about: () => data.about.trim() ? (
+      <section style={{ marginBottom: px(48) }}>
+        <SectionHead num={headIdx.about} en="ABOUT" jp="自己紹介" accent={accent} />
+        <p style={{ margin: 0, color: MO.ink, opacity: 0.9, lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
+          {data.about}
+        </p>
+      </section>
+    ) : null,
+    skills: () => {
+      const filled = data.skills.filter((s) => s.name.trim());
+      if (filled.length === 0) return null;
+      return (
         <section style={{ marginBottom: px(48) }}>
-          <SectionHead num="01" en="ABOUT" jp="自己紹介" accent={accent} />
-          <p style={{ margin: 0, color: MO.ink, opacity: 0.9, lineHeight: 1.85, whiteSpace: 'pre-wrap' }}>
-            {data.about}
-          </p>
-        </section>
-      )}
-
-      {data.skills.filter((s) => s.name.trim()).length > 0 && (
-        <section style={{ marginBottom: px(48) }}>
-          <SectionHead num="02" en="SKILLS" jp="技能" accent={accent} />
+          <SectionHead num={headIdx.skills} en="SKILLS" jp="技能" accent={accent} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {data.skills.filter((s) => s.name.trim()).map((s) => (
+            {filled.map((s) => (
               <div key={s.id} style={{
                 background: MO.panel, border: `1px solid ${MO.hair}`, borderRadius: 8, padding: '14px 16px',
               }}>
@@ -90,12 +117,15 @@ export function Mono({ data }: Props) {
             ))}
           </div>
         </section>
-      )}
-
-      {data.projects.filter((p) => p.title.trim()).length > 0 && (
+      );
+    },
+    projects: () => {
+      const filled = data.projects.filter((p) => p.title.trim());
+      if (filled.length === 0) return null;
+      return (
         <section style={{ marginBottom: px(48) }}>
-          <SectionHead num="03" en="PROJECTS" jp="案件" accent={accent} />
-          {data.projects.filter((p) => p.title.trim()).map((p) => (
+          <SectionHead num={headIdx.projects} en="PROJECTS" jp="案件" accent={accent} />
+          {filled.map((p) => (
             <article key={p.id} style={{
               background: MO.panel, border: `1px solid ${MO.hair}`, borderRadius: 12,
               padding: 22, marginBottom: 14,
@@ -148,13 +178,16 @@ export function Mono({ data }: Props) {
             </article>
           ))}
         </section>
-      )}
-
-      {data.links.filter((l) => l.url.trim()).length > 0 && (
+      );
+    },
+    links: () => {
+      const filled = data.links.filter((l) => l.url.trim());
+      if (filled.length === 0) return null;
+      return (
         <section>
-          <SectionHead num="04" en="CONTACT" jp="連絡先" accent={accent} />
+          <SectionHead num={headIdx.links} en="CONTACT" jp="連絡先" accent={accent} />
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {data.links.filter((l) => l.url.trim()).map((l) => (
+            {filled.map((l) => (
               <a key={l.id} href={normalizeUrl(l.url, l.kind)} target="_blank" rel="noopener noreferrer"
                 style={{
                   padding: '10px 16px', borderRadius: 8, background: MO.panel, border: `1px solid ${MO.hair}`,
@@ -171,22 +204,28 @@ export function Mono({ data }: Props) {
             $ exit · generated with portfolio-editor
           </div>
         </section>
-      )}
-    </div>
-  );
-}
+      );
+    },
+  };
 
-function SectionHead({ num, en, jp, accent }: { num: string; en: string; jp: string; accent: string }) {
   return (
-    <div style={{ marginBottom: 20, display: 'flex', alignItems: 'baseline', gap: 12 }}>
-      <span style={{ fontFamily: MO.mono, fontSize: 10, color: MO.dim, letterSpacing: '0.16em' }}>{num}</span>
-      <h2 style={{
-        fontFamily: MO.sans, fontSize: 13, fontWeight: 700,
-        letterSpacing: '0.18em', textTransform: 'uppercase',
-        color: accent, margin: 0,
-      }}>{en}</h2>
-      <span style={{ fontSize: 11, color: MO.sub, fontFamily: MO.sans }}>{jp}</span>
-      <div style={{ flex: 1, height: 1, background: MO.hair, marginLeft: 6 }} />
+    <div style={{
+      width: '100%', minHeight: '100%',
+      background: MO.bg, color: MO.ink,
+      fontFamily: MO.sans, fontSize: 14, lineHeight: 1.7,
+      padding: `${px(56)}px ${px(56)}px ${px(72)}px`,
+    }}>
+      {renderable.map((id) => {
+        const render = sections[id];
+        if (!render) return null;
+        const node = render();
+        if (!node) return null;
+        return (
+          <SectionWrap key={id} id={id} onJump={onJump}>
+            {node}
+          </SectionWrap>
+        );
+      })}
     </div>
   );
 }

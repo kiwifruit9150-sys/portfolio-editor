@@ -1,5 +1,14 @@
-import type { PortfolioData } from '../../types';
-import { densityScale, formatPeriod, initialsOf, normalizeUrl } from './_shared';
+import type { ReactElement } from 'react';
+import type { SectionId } from '../../types';
+import {
+  RENDERABLE_SECTIONS,
+  densityScale,
+  formatPeriod,
+  initialsOf,
+  normalizeUrl,
+} from './_shared';
+import { SectionWrap } from './SectionWrap';
+import type { ThemeProps } from './registry';
 
 const CD = {
   bg: '#f7f7f5',
@@ -11,20 +20,26 @@ const CD = {
   mono: '"JetBrains Mono", ui-monospace, monospace',
 };
 
-type Props = { data: PortfolioData };
+function SectionLabel({ children, accent }: { children: string; accent: string }) {
+  return (
+    <div style={{
+      fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
+      color: accent, marginBottom: 14,
+    }}>
+      {children}
+    </div>
+  );
+}
 
-export function Card({ data }: Props) {
+export function Card({ data, order, onJump }: ThemeProps) {
   const accent = data.theme.accent || '#1a1a1a';
   const k = densityScale(data.theme.density);
   const px = (n: number) => Math.round(n * k);
 
-  return (
-    <div style={{
-      width: '100%', minHeight: '100%',
-      background: CD.bg, color: CD.ink,
-      fontFamily: CD.sans, fontSize: 14, lineHeight: 1.7,
-      padding: `${px(48)}px ${px(48)}px ${px(64)}px`,
-    }}>
+  const renderable = order.filter((id) => RENDERABLE_SECTIONS.has(id));
+
+  const sections: Partial<Record<SectionId, () => ReactElement | null>> = {
+    profile: () => (
       <header style={{
         display: 'flex', gap: 20, alignItems: 'center',
         marginBottom: px(32),
@@ -50,24 +65,26 @@ export function Card({ data }: Props) {
           )}
         </div>
       </header>
-
-      {data.about.trim() && (
-        <section style={{ marginBottom: px(28) }}>
-          <SectionLabel accent={accent}>ABOUT</SectionLabel>
-          <div style={{
-            background: CD.panel, border: `1px solid ${CD.hair}`,
-            borderRadius: 12, padding: 18, fontSize: 14, lineHeight: 1.8, whiteSpace: 'pre-wrap',
-          }}>
-            {data.about}
-          </div>
-        </section>
-      )}
-
-      {data.skills.filter((s) => s.name.trim()).length > 0 && (
+    ),
+    about: () => data.about.trim() ? (
+      <section style={{ marginBottom: px(28) }}>
+        <SectionLabel accent={accent}>ABOUT</SectionLabel>
+        <div style={{
+          background: CD.panel, border: `1px solid ${CD.hair}`,
+          borderRadius: 12, padding: 18, fontSize: 14, lineHeight: 1.8, whiteSpace: 'pre-wrap',
+        }}>
+          {data.about}
+        </div>
+      </section>
+    ) : null,
+    skills: () => {
+      const filled = data.skills.filter((s) => s.name.trim());
+      if (filled.length === 0) return null;
+      return (
         <section style={{ marginBottom: px(28) }}>
           <SectionLabel accent={accent}>SKILLS</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {data.skills.filter((s) => s.name.trim()).map((s) => (
+            {filled.map((s) => (
               <div key={s.id} style={{ background: CD.panel, border: `1px solid ${CD.hair}`, borderRadius: 12, padding: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, gap: 8 }}>
                   <span style={{ fontWeight: 600, fontSize: 14 }}>{s.name}</span>
@@ -80,12 +97,15 @@ export function Card({ data }: Props) {
             ))}
           </div>
         </section>
-      )}
-
-      {data.projects.filter((p) => p.title.trim()).length > 0 && (
+      );
+    },
+    projects: () => {
+      const filled = data.projects.filter((p) => p.title.trim());
+      if (filled.length === 0) return null;
+      return (
         <section style={{ marginBottom: px(28) }}>
           <SectionLabel accent={accent}>PROJECTS</SectionLabel>
-          {data.projects.filter((p) => p.title.trim()).map((p) => (
+          {filled.map((p) => (
             <div key={p.id} style={{
               background: CD.panel, border: `1px solid ${CD.hair}`, borderRadius: 14,
               padding: 20, marginBottom: 12,
@@ -128,13 +148,16 @@ export function Card({ data }: Props) {
             </div>
           ))}
         </section>
-      )}
-
-      {data.links.filter((l) => l.url.trim()).length > 0 && (
+      );
+    },
+    links: () => {
+      const filled = data.links.filter((l) => l.url.trim());
+      if (filled.length === 0) return null;
+      return (
         <section>
           <SectionLabel accent={accent}>CONTACT</SectionLabel>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {data.links.filter((l) => l.url.trim()).map((l) => (
+            {filled.map((l) => (
               <a key={l.id} href={normalizeUrl(l.url, l.kind)} target="_blank" rel="noopener noreferrer"
                 style={{
                   padding: '10px 16px', borderRadius: 10, background: CD.panel, border: `1px solid ${CD.hair}`,
@@ -147,19 +170,28 @@ export function Card({ data }: Props) {
             ))}
           </div>
         </section>
-      )}
-    </div>
-  );
-}
+      );
+    },
+  };
 
-function SectionLabel({ children, accent }: { children: string; accent: string }) {
   return (
     <div style={{
-      fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
-      color: accent, marginBottom: 14,
+      width: '100%', minHeight: '100%',
+      background: CD.bg, color: CD.ink,
+      fontFamily: CD.sans, fontSize: 14, lineHeight: 1.7,
+      padding: `${px(48)}px ${px(48)}px ${px(64)}px`,
     }}>
-      {children}
+      {renderable.map((id) => {
+        const render = sections[id];
+        if (!render) return null;
+        const node = render();
+        if (!node) return null;
+        return (
+          <SectionWrap key={id} id={id} onJump={onJump}>
+            {node}
+          </SectionWrap>
+        );
+      })}
     </div>
   );
 }
-

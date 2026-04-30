@@ -1,6 +1,14 @@
-import { Fragment } from 'react';
-import type { PortfolioData } from '../../types';
-import { densityScale, formatPeriod, initialsOf, normalizeUrl } from './_shared';
+import { Fragment, type ReactElement } from 'react';
+import type { SectionId } from '../../types';
+import {
+  RENDERABLE_SECTIONS,
+  densityScale,
+  formatPeriod,
+  initialsOf,
+  normalizeUrl,
+} from './_shared';
+import { SectionWrap } from './SectionWrap';
+import type { ThemeProps } from './registry';
 
 const ED = {
   bg: '#fbf9f4',
@@ -12,26 +20,38 @@ const ED = {
   mono: '"JetBrains Mono", ui-monospace, monospace',
 };
 
-type Props = { data: PortfolioData };
+function SectionHead({ num, en, jp, accent }: { num: string; en: string; jp: string; accent: string }) {
+  return (
+    <div style={{ marginBottom: 20, display: 'flex', alignItems: 'baseline', gap: 12 }}>
+      <span style={{ fontFamily: ED.mono, fontSize: 10, color: ED.sub, letterSpacing: '0.16em' }}>{num}</span>
+      <h2 style={{
+        fontFamily: ED.serif, fontSize: 22, fontWeight: 500,
+        letterSpacing: '0.01em', color: ED.ink, margin: 0,
+      }}>{en}</h2>
+      <span style={{ fontSize: 11, color: ED.sub, fontStyle: 'italic', fontFamily: ED.serif }}>{jp}</span>
+      <div style={{ flex: 1, height: 1, background: ED.hairline, marginLeft: 6 }} />
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent, opacity: .6 }} />
+    </div>
+  );
+}
 
-export function Editorial({ data }: Props) {
+export function Editorial({ data, order, onJump }: ThemeProps) {
   const accent = data.theme.accent || '#b8472a';
   const k = densityScale(data.theme.density);
   const px = (n: number) => Math.round(n * k);
 
-  return (
-    <div
-      style={{
-        width: '100%',
-        minHeight: '100%',
-        background: ED.bg,
-        color: ED.ink,
-        fontFamily: ED.sans,
-        fontSize: 14,
-        lineHeight: 1.8,
-        padding: `${px(60)}px ${px(64)}px ${px(80)}px`,
-      }}
-    >
+  // Per-section heading numbers come from the runtime order (so a moved
+  // section gets a new "01"/"02" mark rather than being frozen at insert time).
+  const renderable = order.filter((id) => RENDERABLE_SECTIONS.has(id));
+  const headIdx: Record<SectionId, string> = {} as Record<SectionId, string>;
+  let n = 1;
+  for (const id of renderable) {
+    if (id === 'profile') continue;
+    headIdx[id] = String(n++).padStart(2, '0');
+  }
+
+  const sections: Partial<Record<SectionId, () => ReactElement | null>> = {
+    profile: () => (
       <header style={{ marginBottom: px(56), display: 'flex', alignItems: 'flex-start', gap: 28 }}>
         <div
           style={{
@@ -67,20 +87,22 @@ export function Editorial({ data }: Props) {
           )}
         </div>
       </header>
-
-      {data.about.trim() && (
+    ),
+    about: () => data.about.trim() ? (
+      <section style={{ marginBottom: px(52) }}>
+        <SectionHead num={headIdx.about} en="About" jp="自己紹介" accent={accent} />
+        <p style={{ margin: 0, fontSize: 14, color: ED.ink, lineHeight: 1.9, whiteSpace: 'pre-wrap' }}>
+          {data.about}
+        </p>
+      </section>
+    ) : null,
+    skills: () => {
+      const filled = data.skills.filter((s) => s.name.trim());
+      if (filled.length === 0) return null;
+      return (
         <section style={{ marginBottom: px(52) }}>
-          <SectionHead num="01" en="About" jp="自己紹介" accent={accent} />
-          <p style={{ margin: 0, fontSize: 14, color: ED.ink, lineHeight: 1.9, whiteSpace: 'pre-wrap' }}>
-            {data.about}
-          </p>
-        </section>
-      )}
-
-      {data.skills.filter((s) => s.name.trim()).length > 0 && (
-        <section style={{ marginBottom: px(52) }}>
-          <SectionHead num="02" en="Skills" jp="持っている道具" accent={accent} />
-          {data.skills.filter((s) => s.name.trim()).map((s, i, arr) => (
+          <SectionHead num={headIdx.skills} en="Skills" jp="持っている道具" accent={accent} />
+          {filled.map((s, i, arr) => (
             <div key={s.id} style={{
               display: 'grid', gridTemplateColumns: '90px 1fr', gap: 24,
               padding: '16px 0',
@@ -96,12 +118,15 @@ export function Editorial({ data }: Props) {
             </div>
           ))}
         </section>
-      )}
-
-      {data.projects.filter((p) => p.title.trim()).length > 0 && (
+      );
+    },
+    projects: () => {
+      const filled = data.projects.filter((p) => p.title.trim());
+      if (filled.length === 0) return null;
+      return (
         <section style={{ marginBottom: px(48) }}>
-          <SectionHead num="03" en="Selected Works" jp="主な仕事" accent={accent} />
-          {data.projects.filter((p) => p.title.trim()).map((p, i, arr) => (
+          <SectionHead num={headIdx.projects} en="Selected Works" jp="主な仕事" accent={accent} />
+          {filled.map((p, i, arr) => (
             <article key={p.id} style={{ marginBottom: 32, paddingBottom: 32, borderBottom: i < arr.length - 1 ? `1px solid ${ED.hairline}` : 'none' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4, gap: 12 }}>
                 <h3 style={{ fontFamily: ED.serif, fontSize: 22, fontWeight: 500, margin: 0 }}>{p.title}</h3>
@@ -145,13 +170,16 @@ export function Editorial({ data }: Props) {
             </article>
           ))}
         </section>
-      )}
-
-      {data.links.filter((l) => l.url.trim()).length > 0 && (
+      );
+    },
+    links: () => {
+      const filled = data.links.filter((l) => l.url.trim());
+      if (filled.length === 0) return null;
+      return (
         <section>
-          <SectionHead num="04" en="Contact" jp="連絡先" accent={accent} />
+          <SectionHead num={headIdx.links} en="Contact" jp="連絡先" accent={accent} />
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {data.links.filter((l) => l.url.trim()).map((l) => (
+            {filled.map((l) => (
               <a key={l.id} href={normalizeUrl(l.url, l.kind)} target="_blank" rel="noopener noreferrer"
                 style={{
                   padding: '10px 16px', border: `1px solid ${ED.ink}`, color: ED.ink,
@@ -170,22 +198,28 @@ export function Editorial({ data }: Props) {
             — End of Document —
           </div>
         </section>
-      )}
-    </div>
-  );
-}
+      );
+    },
+  };
 
-function SectionHead({ num, en, jp, accent }: { num: string; en: string; jp: string; accent: string }) {
   return (
-    <div style={{ marginBottom: 20, display: 'flex', alignItems: 'baseline', gap: 12 }}>
-      <span style={{ fontFamily: ED.mono, fontSize: 10, color: ED.sub, letterSpacing: '0.16em' }}>{num}</span>
-      <h2 style={{
-        fontFamily: ED.serif, fontSize: 22, fontWeight: 500,
-        letterSpacing: '0.01em', color: ED.ink, margin: 0,
-      }}>{en}</h2>
-      <span style={{ fontSize: 11, color: ED.sub, fontStyle: 'italic', fontFamily: ED.serif }}>{jp}</span>
-      <div style={{ flex: 1, height: 1, background: ED.hairline, marginLeft: 6 }} />
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent, opacity: .6 }} />
+    <div style={{
+      width: '100%', minHeight: '100%',
+      background: ED.bg, color: ED.ink,
+      fontFamily: ED.sans, fontSize: 14, lineHeight: 1.8,
+      padding: `${px(60)}px ${px(64)}px ${px(80)}px`,
+    }}>
+      {renderable.map((id) => {
+        const render = sections[id];
+        if (!render) return null;
+        const node = render();
+        if (!node) return null;
+        return (
+          <SectionWrap key={id} id={id} onJump={onJump}>
+            {node}
+          </SectionWrap>
+        );
+      })}
     </div>
   );
 }

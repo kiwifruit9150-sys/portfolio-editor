@@ -57,7 +57,10 @@ export function Header() {
         <button
           type="button"
           className="btn btn-primary"
-          onClick={() => downloadHtml(selectPortfolio(usePortfolio.getState()))}
+          onClick={() => {
+            const s = usePortfolio.getState();
+            downloadHtml(selectPortfolio(s), s.ui.sectionOrder);
+          }}
         >
           <Icon name="download" size={13} />
           HTMLエクスポート

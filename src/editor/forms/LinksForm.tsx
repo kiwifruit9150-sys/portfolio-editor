@@ -9,6 +9,7 @@ export function LinksForm() {
   const addLink = usePortfolio((s) => s.addLink);
   const updateLink = usePortfolio((s) => s.updateLink);
   const removeLink = usePortfolio((s) => s.removeLink);
+  const insertSampleLinks = usePortfolio((s) => s.insertSampleLinks);
 
   return (
     <>
@@ -21,10 +22,16 @@ export function LinksForm() {
       {links.length === 0 && (
         <div className="empty-add">
           リンクがまだありません。<br />
-          <button type="button" className="btn" onClick={addLink}>
-            <Icon name="plus" size={12} />
-            最初のリンクを追加
-          </button>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+            <button type="button" className="btn" onClick={addLink}>
+              <Icon name="plus" size={12} />
+              最初のリンクを追加
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={insertSampleLinks}>
+              <Icon name="sparkles" size={12} />
+              サンプルを挿入
+            </button>
+          </div>
         </div>
       )}
       {links.map((l) => (

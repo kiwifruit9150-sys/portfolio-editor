@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { sectionPct, usePortfolio } from '../store/usePortfolio';
 import type { SectionId } from '../types';
@@ -13,13 +13,14 @@ const META: Record<SectionId, { label: string; icon: IconName }> = {
   theme: { label: 'テーマ', icon: 'palette' },
 };
 
+const PINNED: SectionId = 'theme';
+
 export function LeftNav() {
   const order = usePortfolio((s) => s.ui.sectionOrder);
   const active = usePortfolio((s) => s.ui.activeSection);
   const setActive = usePortfolio((s) => s.setActiveSection);
+  const setSectionOrder = usePortfolio((s) => s.setSectionOrder);
 
-  // Subscribe to the slices that actually feed sectionPct. Shallow compare on
-  // the slice references is stable across unrelated UI state updates.
   const slice = usePortfolio(
     useShallow((s) => ({
       profile: s.profile,
@@ -44,21 +45,75 @@ export function LeftNav() {
     ) as Record<SectionId, ReturnType<typeof sectionPct>>;
   }, [slice, order, active]);
 
+  const [dragId, setDragId] = useState<SectionId | null>(null);
+  const [overId, setOverId] = useState<SectionId | null>(null);
+
+  const reorder = (from: SectionId, to: SectionId) => {
+    if (from === to || from === PINNED) return;
+    const next = order.filter((id) => id !== from && id !== PINNED);
+    const insertAt = to === PINNED ? next.length : next.indexOf(to);
+    next.splice(insertAt, 0, from);
+    setSectionOrder([...next, PINNED]);
+  };
+
   return (
     <nav className="nav" aria-label="セクション">
       <div className="nav-eyebrow">セクション</div>
       {order.map((id) => {
         const m = META[id];
         const st = stats[id];
+        const isPinned = id === PINNED;
+        const isActive = id === active;
+        const isDragging = id === dragId;
+        const isOver = id === overId && dragId !== null && id !== dragId;
+
         return (
           <button
             key={id}
             type="button"
-            className={`nav-row ${id === active ? 'active' : ''}`}
-            aria-current={id === active ? 'page' : undefined}
+            className={[
+              'nav-row',
+              isActive ? 'active' : '',
+              isDragging ? 'dragging' : '',
+              isOver ? 'drop-over' : '',
+            ].filter(Boolean).join(' ')}
+            aria-current={isActive ? 'page' : undefined}
             onClick={() => setActive(id)}
+            draggable={!isPinned}
+            onDragStart={(e) => {
+              if (isPinned) return;
+              setDragId(id);
+              e.dataTransfer.effectAllowed = 'move';
+              e.dataTransfer.setData('text/plain', id);
+            }}
+            onDragEnd={() => {
+              setDragId(null);
+              setOverId(null);
+            }}
+            onDragOver={(e) => {
+              if (!dragId || dragId === id) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              if (overId !== id) setOverId(id);
+            }}
+            onDragLeave={() => {
+              if (overId === id) setOverId(null);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const from = (e.dataTransfer.getData('text/plain') || dragId) as SectionId;
+              if (from) reorder(from, id);
+              setDragId(null);
+              setOverId(null);
+            }}
           >
-            <span className="nav-grip"><Icon name="grip" size={13} /></span>
+            <span
+              className="nav-grip"
+              title={isPinned ? '末尾固定' : 'ドラッグで並び替え'}
+              style={isPinned ? { opacity: 0.2 } : undefined}
+            >
+              <Icon name="grip" size={13} />
+            </span>
             <span className="nav-icon"><Icon name={m.icon} size={14} /></span>
             <span className="nav-text">
               <div className="nav-label">{m.label}</div>
